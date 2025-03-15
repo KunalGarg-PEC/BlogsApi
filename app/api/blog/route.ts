@@ -3,14 +3,20 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbconnect';
 import Blog, { IBlog } from '../../models/Blog';
-import { join } from 'path';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary using environment variables
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
+});
 
 // Define common CORS headers
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Change to a specific origin for better security
+  'Access-Control-Allow-Origin': '*', // Adjust this for security if needed
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 // Handle preflight OPTIONS requests
@@ -36,23 +42,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Read the file as an ArrayBuffer and convert it to a Buffer
+    // Convert the file to a buffer
     const buffer = Buffer.from(await imageFile.arrayBuffer());
 
-    // Define the upload directory inside the public folder
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadDir)) {
-      mkdirSync(uploadDir, { recursive: true });
-    }
+    // Upload the image buffer to Cloudinary
+    const uploadResult = await new Promise<{ secure_url: string }>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'uploads' },
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(result as { secure_url: string });
+        }
+      );
+      uploadStream.end(buffer);
+    });
 
-    // Create a unique filename (using a timestamp)
-    const fileName = `${Date.now()}-${imageFile.name}`;
-    const filePath = join(uploadDir, fileName);
-    writeFileSync(filePath, buffer);
-
-    // Build a relative URL for the image
-    const imageUrl = `/uploads/${fileName}`;
-    console.log(imageUrl);
+    // Use the secure_url provided by Cloudinary as the image URL
+    const imageUrl = uploadResult.secure_url;
+    console.log("Uploaded image URL:", imageUrl);
 
     // Create the blog document with the image URL
     const blog: IBlog = await Blog.create({ title, description, type, author, image: imageUrl });
