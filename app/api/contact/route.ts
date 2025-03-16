@@ -9,7 +9,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*", // or restrict to your domain
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }
@@ -19,7 +19,7 @@ export async function OPTIONS() {
 export async function POST(req: any) {
   try {
     const { fullName, companyName, workEmail, phoneNumber, message } = await req.json();
-
+    console.log(fullName);
     // Configure the transporter with your email service credentials
     const transporter = nodemailer.createTransport({
       service: "gmail",
