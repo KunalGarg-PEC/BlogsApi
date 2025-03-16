@@ -1,4 +1,17 @@
 import nodemailer from "nodemailer";
+import { NextResponse } from "next/server";
+
+// Handle preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*", // or restrict to your domain
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function POST(req:any) {
@@ -16,7 +29,7 @@ export async function POST(req:any) {
 
     const mailOptions = {
       from: process.env.GMAIL_USER,
-      to: "gargkunal369@gmail.com", // Destination email address
+      to: "gargkunal369@gmail.com",
       subject: "New Contact Form Submission",
       text: `
 Full Name: ${fullName}
@@ -29,15 +42,13 @@ Message: ${message}
 
     await transporter.sendMail(mailOptions);
 
-    return new Response(
-      JSON.stringify({ message: "Email sent successfully" }),
-      { status: 200 }
-    );
+    const response = NextResponse.json({ message: "Email sent successfully" }, { status: 200 });
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    return response;
   } catch (error) {
     console.error("Error sending email: ", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to send email" }),
-      { status: 500 }
-    );
+    const response = NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    return response;
   }
 }
