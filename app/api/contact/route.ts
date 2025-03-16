@@ -17,6 +17,7 @@ export async function OPTIONS() {
 // POST handler: Sends email and stores submission data
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function POST(req: any) {
+    console.log("fullName");
   try {
     const { fullName, companyName, workEmail, phoneNumber, message } = await req.json();
     console.log(fullName);
