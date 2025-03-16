@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
 
+
 // Handle preflight requests
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -13,8 +14,9 @@ export async function OPTIONS() {
   });
 }
 
+// POST handler: Sends email and stores submission data
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function POST(req:any) {
+export async function POST(req: any) {
   try {
     const { fullName, companyName, workEmail, phoneNumber, message } = await req.json();
 
@@ -41,6 +43,7 @@ Message: ${message}
     };
 
     await transporter.sendMail(mailOptions);
+    
 
     const response = NextResponse.json({ message: "Email sent successfully" }, { status: 200 });
     response.headers.set("Access-Control-Allow-Origin", "*");
