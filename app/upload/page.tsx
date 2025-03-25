@@ -14,7 +14,7 @@ export default function UploadBlog() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [author, setAuthor] = useState("");
-  const [type, setType] = useState("Blog");
+  const [type, setType] = useState("Blogs");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -125,9 +125,9 @@ export default function UploadBlog() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A5CAA]"
                 >
-                  <option value="Blog">Blog</option>
-                  <option value="White Paper">White Paper</option>
-                  <option value="Research paper">Research paper</option>
+                  <option value="Blog">Blogs</option>
+                  <option value="White Paper">White Papers</option>
+                  <option value="Research paper">Our patents</option>
                 </select>
               </div>
               <div className="mb-6">
