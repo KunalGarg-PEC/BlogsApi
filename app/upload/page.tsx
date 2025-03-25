@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic"; // Dynamically import ReactQuill
-import DOMPurify from "dompurify"; // Import DOMPurify for sanitization
-import "react-quill-new/dist/quill.snow.css"; // Import Quill styles
+import dynamic from "next/dynamic";
+import DOMPurify from "dompurify";
+import "react-quill-new/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+// Dynamically import our custom ReactQuillWrapper component
+const ReactQuill = dynamic(() => import("./ReactQuillWrapper"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
+  ),
+});
 
 export default function UploadBlog() {
   const [title, setTitle] = useState("");
@@ -18,10 +24,80 @@ export default function UploadBlog() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const quillRef = useRef<any>(null);
 
-  // Function to clean HTML output
+  const editorModules = useMemo(
+    () => ({
+      table: true,
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["link", "image", "table"],
+          [{ align: [] }],
+          ["clean"],
+        ],
+        handlers: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          image: function (this: any) {
+            const input = document.createElement("input");
+            input.setAttribute("type", "file");
+            input.setAttribute("accept", "image/*");
+            input.click();
+
+            input.onchange = async () => {
+              if (input.files?.[0]) {
+                const file = input.files[0];
+                try {
+                  const formData = new FormData();
+                  formData.append("image", file);
+
+                  const res = await fetch("/api/upload", {
+                    method: "POST",
+                    body: formData,
+                  });
+
+                  if (!res.ok) throw new Error("Upload failed");
+
+                  const { url } = await res.json();
+                  const quill = quillRef.current?.getEditor();
+                  const range = quill.getSelection();
+                  quill.insertEmbed(range?.index || 0, "image", url);
+                } catch (error) {
+                  console.error("Image upload failed:", error);
+                  alert("Image upload failed. Please try again.");
+                }
+              }
+            };
+          },
+        },
+      },
+    }),
+    []
+  );
+
+  const editorFormats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "bullet",
+    "link",
+    "image",
+    "table",
+    "align",
+  ];
+
   const cleanHTML = (html: string) => {
-    return DOMPurify.sanitize(html).replace(/<span class="ql-ui".*?<\/span>/g, "");
+    return DOMPurify.sanitize(html)
+      .replace(/<span class="ql-ui".*?<\/span>/g, "")
+      .replace(/<img[^>]+>/g, (match) => {
+        return match.replace(/style="[^"]*"/, 'class="ql-image"');
+      });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +111,7 @@ export default function UploadBlog() {
     try {
       const formData = new FormData();
       formData.append("title", title);
-      formData.append("description", cleanHTML(description)); // Clean description before saving
+      formData.append("description", cleanHTML(description));
       formData.append("type", type);
       formData.append("author", author);
       formData.append("image", imageFile);
@@ -44,14 +120,18 @@ export default function UploadBlog() {
         method: "POST",
         body: formData,
       });
+
+      if (!res.ok) throw new Error("Upload failed");
+
       const data = await res.json();
       if (data.success) {
         router.push("/");
       } else {
         setError(data.error || "Something went wrong");
       }
-    } catch {
-      setError("Something went wrong");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
     }
   };
 
@@ -71,13 +151,16 @@ export default function UploadBlog() {
         <div className="max-w-4xl mx-auto">
           <Card className="p-8 shadow-lg rounded-lg">
             {error && (
-              <div className="mb-6 text-center text-red-600 font-medium">
+              <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-md text-center">
                 {error}
               </div>
             )}
             <form onSubmit={handleSubmit}>
               <div className="mb-6">
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Title
                 </label>
                 <input
@@ -89,8 +172,12 @@ export default function UploadBlog() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A5CAA]"
                 />
               </div>
+
               <div className="mb-6">
-                <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="author"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Author Name
                 </label>
                 <input
@@ -102,20 +189,30 @@ export default function UploadBlog() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A5CAA]"
                 />
               </div>
+
               <div className="mb-6">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Description
                 </label>
-                {/* Rich Text Editor */}
                 <ReactQuill
+                  ref={quillRef}
                   value={description}
                   onChange={setDescription}
                   theme="snow"
-                  className="bg-white"
+                  className="bg-white h-96 mb-8 rounded-lg overflow-hidden"
+                  modules={editorModules}
+                  formats={editorFormats}
                 />
               </div>
+
               <div className="mb-6">
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="type"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Type
                 </label>
                 <select
@@ -127,31 +224,36 @@ export default function UploadBlog() {
                 >
                   <option value="Blogs">Blogs</option>
                   <option value="White Papers">White Papers</option>
-                  <option value="our patents">Our patents</option>
+                  <option value="Our Patents">Our Patents</option>
                 </select>
               </div>
-              <div className="mb-6">
-                <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                  Image
+
+              <div className="mb-8">
+                <label
+                  htmlFor="image"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Featured Image
                 </label>
                 <input
                   id="image"
                   type="file"
                   accept="image/*"
                   onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
+                    if (e.target.files?.[0]) {
                       setImageFile(e.target.files[0]);
                     }
                   }}
                   required
-                  className="w-full"
+                  className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#2A5CAA] file:text-white hover:file:bg-[#1A4a9e]"
                 />
               </div>
+
               <Button
                 type="submit"
                 className="w-full py-3 bg-[#2A5CAA] text-white font-semibold rounded-md hover:bg-[#1A4a9e] transition-colors"
               >
-                Upload
+                Publish Blog
               </Button>
             </form>
           </Card>
