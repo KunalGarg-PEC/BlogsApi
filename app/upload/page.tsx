@@ -125,9 +125,9 @@ export default function UploadBlog() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A5CAA]"
                 >
-                  <option value="Blog">Blogs</option>
-                  <option value="White Paper">White Papers</option>
-                  <option value="Research paper">Our patents</option>
+                  <option value="Blogs">Blogs</option>
+                  <option value="White Papers">White Papers</option>
+                  <option value="our patents">Our patents</option>
                 </select>
               </div>
               <div className="mb-6">
