@@ -7,6 +7,7 @@ import DOMPurify from "dompurify";
 import "react-quill-new/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import "./editor-styles.css";
 
 const ReactQuill = dynamic(() => import("./ReactQuillWrapper"), {
   ssr: false,
@@ -108,7 +109,6 @@ export default function UploadBlog() {
 
   return (
     <main className="min-h-screen bg-[#F2F4FA]">
-      {/* Hidden file input for image uploads */}
       <input
         type="file"
         accept="image/*"
@@ -133,21 +133,18 @@ export default function UploadBlog() {
 
               const { url } = await res.json();
               quill.insertEmbed(range?.index || 0, "image", url);
-              
-              // Maintain focus and selection
               quill.setSelection((range?.index || 0) + 1);
               quill.focus();
             } catch (error) {
               console.error("Image upload failed:", error);
               alert("Image upload failed. Please try again.");
             } finally {
-              e.target.value = "";
+              if (e.target) e.target.value = "";
             }
           }
         }}
       />
 
-      {/* Hero Section */}
       <section className="pt-32 pb-0 px-6 bg-[#F2F4FA] clip-diagonal-bottom">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-[#2A5CAA] mb-5">
@@ -156,7 +153,6 @@ export default function UploadBlog() {
         </div>
       </section>
 
-      {/* Form Section */}
       <section className="px-6 py-20">
         <div className="max-w-4xl mx-auto">
           <Card className="p-8 shadow-lg rounded-lg">
@@ -207,15 +203,17 @@ export default function UploadBlog() {
                 >
                   Description
                 </label>
-                <ReactQuill
-                  ref={quillRef}
-                  value={description}
-                  onChange={setDescription}
-                  theme="snow"
-                  className="bg-white h-96 mb-8 rounded-lg overflow-hidden"
-                  modules={editorModules}
-                  formats={editorFormats}
-                />
+                <div className="relative h-[500px]">
+                  <ReactQuill
+                    ref={quillRef}
+                    value={description}
+                    onChange={setDescription}
+                    theme="snow"
+                    className="bg-white h-full rounded-lg overflow-hidden"
+                    modules={editorModules}
+                    formats={editorFormats}
+                  />
+                </div>
               </div>
 
               <div className="mb-6">

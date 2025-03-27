@@ -1,0 +1,28 @@
+.ql-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: white;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .ql-editor {
+    padding-top: 4.5rem !important;
+  }
+  
+  .ql-container {
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+    height: calc(100% - 45px);
+    overflow-y: auto;
+  }
+  
+  .ql-editor-wrapper {
+    height: 100%;
+  }
+  
+  .ql-snow .ql-tooltip {
+    z-index: 1001;
+  }
