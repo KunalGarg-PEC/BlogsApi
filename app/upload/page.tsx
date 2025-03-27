@@ -8,7 +8,6 @@ import "react-quill-new/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-// Dynamically import our custom ReactQuillWrapper component
 const ReactQuill = dynamic(() => import("./ReactQuillWrapper"), {
   ssr: false,
   loading: () => (
@@ -26,6 +25,7 @@ export default function UploadBlog() {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const quillRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editorModules = useMemo(
     () => ({
@@ -40,37 +40,8 @@ export default function UploadBlog() {
           ["clean"],
         ],
         handlers: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          image: function (this: any) {
-            const input = document.createElement("input");
-            input.setAttribute("type", "file");
-            input.setAttribute("accept", "image/*");
-            input.click();
-
-            input.onchange = async () => {
-              if (input.files?.[0]) {
-                const file = input.files[0];
-                try {
-                  const formData = new FormData();
-                  formData.append("image", file);
-
-                  const res = await fetch("/api/upload", {
-                    method: "POST",
-                    body: formData,
-                  });
-
-                  if (!res.ok) throw new Error("Upload failed");
-
-                  const { url } = await res.json();
-                  const quill = quillRef.current?.getEditor();
-                  const range = quill.getSelection();
-                  quill.insertEmbed(range?.index || 0, "image", url);
-                } catch (error) {
-                  console.error("Image upload failed:", error);
-                  alert("Image upload failed. Please try again.");
-                }
-              }
-            };
+          image: () => {
+            fileInputRef.current?.click();
           },
         },
       },
@@ -137,6 +108,45 @@ export default function UploadBlog() {
 
   return (
     <main className="min-h-screen bg-[#F2F4FA]">
+      {/* Hidden file input for image uploads */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={async (e) => {
+          if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            try {
+              const quill = quillRef.current?.getEditor();
+              const range = quill.getSelection();
+
+              const formData = new FormData();
+              formData.append("image", file);
+
+              const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+              });
+
+              if (!res.ok) throw new Error("Upload failed");
+
+              const { url } = await res.json();
+              quill.insertEmbed(range?.index || 0, "image", url);
+              
+              // Maintain focus and selection
+              quill.setSelection((range?.index || 0) + 1);
+              quill.focus();
+            } catch (error) {
+              console.error("Image upload failed:", error);
+              alert("Image upload failed. Please try again.");
+            } finally {
+              e.target.value = "";
+            }
+          }
+        }}
+      />
+
       {/* Hero Section */}
       <section className="pt-32 pb-0 px-6 bg-[#F2F4FA] clip-diagonal-bottom">
         <div className="max-w-6xl mx-auto text-center">
