@@ -1,13 +1,19 @@
+// app/admin/applications/page.tsx
+
+// Ensure this page always re-runs on every request
+export const dynamic = 'force-dynamic';
+
 import { connectToDatabase } from '@/lib/mongodb';
 import { Application } from '../../types/application';
 import Link from 'next/link';
 
 export default async function ApplicationsPage() {
   const { db } = await connectToDatabase();
-  const applications = await db.collection('applications')
+  const applications = (await db
+    .collection('applications')
     .find({})
     .sort({ createdAt: -1 })
-    .toArray() as Application[];
+    .toArray()) as Application[];
 
   return (
     <div className="max-w-6xl mx-auto p-6 mt-20">
