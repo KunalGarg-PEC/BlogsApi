@@ -9,7 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
     "@types/quill": "^2.0.14",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.6.0",
@@ -25,6 +26,7 @@
     "quill-table": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.5.2",
     "react-quill": "^2.0.0",
     "react-quill-new": "^3.4.1",
     "tailwind-merge": "^3.0.2",

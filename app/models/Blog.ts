@@ -12,7 +12,7 @@ export interface IBlog extends Document {
   updatedAt: Date;
 }
 
-const BlogSchema: Schema = new Schema(
+const BlogSchema: Schema<IBlog> = new Schema(
   {
     title: { type: String, required: true },
     description: { type: String, required: true },
