@@ -23,9 +23,9 @@ export async function OPTIONS() {
 // GET /api/jobs/[jobId]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const { jobId } = params;
+    const { jobId } = await params;
 
   try {
     await dbConnects();
@@ -54,9 +54,9 @@ export async function GET(
 // PUT /api/jobs/[jobId]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const { jobId } = params;
+    const { jobId } = await params;
 
   try {
     const updates = await request.json();
@@ -93,9 +93,9 @@ export async function PUT(
 // DELETE /api/jobs/[jobId]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const { jobId } = params;
+    const { jobId } = await params;
 
   try {
     await dbConnects();
