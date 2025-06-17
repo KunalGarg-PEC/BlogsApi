@@ -8,17 +8,19 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+// true “empty” preflight response
 export async function OPTIONS() {
-  // CORS preflight response
-  return NextResponse.json(null, { status: 204, headers: CORS_HEADERS });
+  return new NextResponse(null, {
+    status: 204,
+    headers: CORS_HEADERS,
+  });
 }
 
 export async function POST(request: Request) {
   try {
     const { email, jobId } = await request.json();
     const { db } = await connectToDatabase();
-    
-    // Check if this email has already been used for THIS SPECIFIC JOB
+
     const existingApplication = await db
       .collection("applications")
       .findOne({ email, jobId });
