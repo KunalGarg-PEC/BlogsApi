@@ -5,6 +5,17 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnects from "@/lib/dbconnects";
 import Job, { IJob } from "../../../models/job";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return NextResponse.json(null, { status: 204, headers: CORS_HEADERS });
+}
+
 // GET handler
 export async function GET(
   request: NextRequest,
@@ -19,15 +30,18 @@ export async function GET(
     if (!job) {
       return NextResponse.json(
         { success: false, error: `No job found with jobId: ${jobId}` },
-        { status: 404 }
+        { status: 404, headers: CORS_HEADERS }
       );
     }
-    return NextResponse.json({ success: true, data: job }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: job },
+      { status: 200, headers: CORS_HEADERS }
+    );
   } catch (error: any) {
     console.error(`GET /api/jobs/${jobId} error:`, error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
@@ -47,20 +61,25 @@ export async function PUT(
       { jobId },
       body,
       { new: true, runValidators: true }
-    ).lean().exec();
+    )
+      .lean()
+      .exec();
 
     if (!updated) {
       return NextResponse.json(
         { success: false, error: `No job found with jobId: ${jobId}` },
-        { status: 404 }
+        { status: 404, headers: CORS_HEADERS }
       );
     }
-    return NextResponse.json({ success: true, data: updated }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: updated },
+      { status: 200, headers: CORS_HEADERS }
+    );
   } catch (error: any) {
     console.error(`PUT /api/jobs/${jobId} error:`, error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
@@ -74,20 +93,25 @@ export async function DELETE(
 
   try {
     await dbConnects();
-    const deleted: IJob | null = await Job.findOneAndDelete({ jobId }).lean().exec();
+    const deleted: IJob | null = await Job.findOneAndDelete({ jobId })
+      .lean()
+      .exec();
 
     if (!deleted) {
       return NextResponse.json(
         { success: false, error: `No job found with jobId: ${jobId}` },
-        { status: 404 }
+        { status: 404, headers: CORS_HEADERS }
       );
     }
-    return NextResponse.json({ success: true, data: {} }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: {} },
+      { status: 200, headers: CORS_HEADERS }
+    );
   } catch (error: any) {
     console.error(`DELETE /api/jobs/${jobId} error:`, error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }

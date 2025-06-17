@@ -1,88 +1,122 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import nodemailer from "nodemailer";
-import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { v2 as cloudinary } from 'cloudinary';
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { v2 as cloudinary } from "cloudinary";
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return NextResponse.json(null, {
+    status: 204,
+    headers: CORS_HEADERS,
+  });
+}
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const applicationData: Record<string, any> = {
       createdAt: new Date(),
-      status: 'new'
+      status: "new",
     };
 
     // Process text fields
     const textFields = [
-      'email', 'firstName', 'lastName', 'phone', 'state', 'city',
-      'addressLine1', 'isOver18', 'isAuthorizedToWork',
-      'requiresSponsorship', 'fullName', 'jobId'
+      "email",
+      "firstName",
+      "lastName",
+      "phone",
+      "state",
+      "city",
+      "addressLine1",
+      "isOver18",
+      "isAuthorizedToWork",
+      "requiresSponsorship",
+      "fullName",
+      "jobId",
     ];
-    
-    textFields.forEach(field => {
+    textFields.forEach((field) => {
       const value = formData.get(field);
       if (value) applicationData[field] = value.toString();
     });
 
     // Process JSON fields
-    const jsonFields = ['links', 'education', 'experience', 'projects'];
-    jsonFields.forEach(field => {
+    const jsonFields = ["links", "education", "experience", "projects"];
+    jsonFields.forEach((field) => {
       const rawValue = formData.get(field);
       try {
-        applicationData[field] = rawValue ? JSON.parse(rawValue.toString()) : [];
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+        applicationData[field] = rawValue
+          ? JSON.parse(rawValue.toString())
+          : [];
+      } catch {
         applicationData[field] = [];
       }
     });
 
     // Validate required fields
-    if (!applicationData.email || !formData.get('resume')) {
+    if (!applicationData.email || !formData.get("resume")) {
       return NextResponse.json(
-        { message: 'Email and resume are required fields' },
-        { status: 400 }
+        { message: "Email and resume are required fields" },
+        { status: 400, headers: CORS_HEADERS }
       );
     }
 
     // Upload files to Cloudinary
-    const resume = formData.get('resume');
-    const coverLetter = formData.get('coverLetter');
+    const resume = formData.get("resume");
+    const coverLetter = formData.get("coverLetter");
 
     if (resume instanceof Blob) {
       const buffer = Buffer.from(await resume.arrayBuffer());
-      applicationData.resumeUrl = await uploadToCloudinary(buffer, `resume_${applicationData.lastName || 'candidate'}`);
+      applicationData.resumeUrl = await uploadToCloudinary(
+        buffer,
+        `resume_${applicationData.lastName || "candidate"}`
+      );
     }
 
     if (coverLetter instanceof Blob) {
       const buffer = Buffer.from(await coverLetter.arrayBuffer());
-      applicationData.coverLetterUrl = await uploadToCloudinary(buffer, `cover_letter_${applicationData.lastName || 'candidate'}`);
+      applicationData.coverLetterUrl = await uploadToCloudinary(
+        buffer,
+        `cover_letter_${applicationData.lastName || "candidate"}`
+      );
     }
 
     // Save application to database
     const { db } = await connectToDatabase();
-    const result = await db.collection('applications').insertOne(applicationData);
+    const result = await db.collection("applications").insertOne(applicationData);
     const applicationId = result.insertedId.toString();
 
     // Send email notification to admin
     await sendApplicationNotification(applicationId, applicationData.email);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Application submitted successfully',
-      applicationId
-    });
-
-  } catch (error) {
-    console.error('Submission error:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
+      {
+        success: true,
+        message: "Application submitted successfully",
+        applicationId,
+      },
+      { status: 201, headers: CORS_HEADERS }
+    );
+  } catch (error: any) {
+    console.error("Submission error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
 
 // Email notification function
-async function sendApplicationNotification(applicationId: string, applicantEmail: string) {
+async function sendApplicationNotification(
+  applicationId: string,
+  applicantEmail: string
+) {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -94,7 +128,7 @@ async function sendApplicationNotification(applicationId: string, applicantEmail
 
     const adminEmail = process.env.ADMIN_EMAIL || "gargkunal369@gmail.com";
     const appUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/admin/applications/${applicationId}`;
-    
+
     const mailOptions = {
       from: process.env.GMAIL_USER,
       to: adminEmail,
@@ -110,7 +144,6 @@ async function sendApplicationNotification(applicationId: string, applicantEmail
     console.log("Admin notification sent");
   } catch (emailError) {
     console.error("Failed to send admin notification:", emailError);
-    // Fail silently - don't block application submission
   }
 }
 
@@ -122,40 +155,24 @@ cloudinary.config({
   secure: true,
 });
 
-// Define minimal type for Cloudinary upload response
-// interface CloudinaryUploadResult {
-//   secure_url: string;
-// }
-
 // Simplified upload function returns only secure_url string
-async function uploadToCloudinary(buffer: Buffer, publicId: string): Promise<string> {
+async function uploadToCloudinary(
+  buffer: Buffer,
+  publicId: string
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        resource_type: 'auto',
+        resource_type: "auto",
         public_id: publicId,
-        folder: 'job_applications',
+        folder: "job_applications",
       },
       (error, result) => {
         if (error) reject(error);
         else if (result?.secure_url) resolve(result.secure_url);
-        else reject(new Error('Upload failed: No secure URL returned'));
+        else reject(new Error("Upload failed: No secure URL returned"));
       }
     );
-    
     stream.end(buffer);
   });
-}
-
-export async function OPTIONS() {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    }
-  );
 }
