@@ -1,32 +1,30 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextResponse, type NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
-const SECRET = process.env.NEXTAUTH_SECRET!;
-
-// Only protect `/admin` and the root `/` (your home)
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  if (
-    pathname.startsWith("/admin") ||
-    pathname === "/" ||
-    pathname === "/job" ||
-    pathname === "/upload"
-  ) {
-    const token = req.cookies.get("admin-token")?.value;
-    if (!token)
-      return NextResponse.redirect(new URL("/login", req.url));
-
-    try {
-      jwt.verify(token, SECRET);
-      return NextResponse.next();
-    } catch {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
+export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+  
+  // Allow login page and API routes
+  if (path === "/login" || path.startsWith("/api")) {
+    return NextResponse.next();
   }
-  return NextResponse.next();
+
+  const token = req.cookies.get("auth-token")?.value;
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    await jwtVerify(token, secret);
+    return NextResponse.next();
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/", "/job", "/upload"],
+  matcher: ["/((?!login|_next/static|_next/image|favicon.ico).*)"],
 };

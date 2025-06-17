@@ -1,35 +1,45 @@
-import { NextResponse } from "next/server";    
-import jwt from "jsonwebtoken";
-
-const USER = process.env.ADMIN_USER!;
-const PASS = process.env.ADMIN_PASS!;
-const SECRET = process.env.NEXTAUTH_SECRET!;
+import { NextResponse } from "next/server";
+import { SignJWT } from "jose";
 
 export async function POST(req: Request) {
   const { username, password } = await req.json();
+  
+  const ADMIN_USER = process.env.ADMIN_USER!;
+  const ADMIN_PASS = process.env.ADMIN_PASS!;
+  const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-  if (username !== USER || password !== PASS) {
+  if (username !== ADMIN_USER || password !== ADMIN_PASS) {
     return NextResponse.json(
       { message: "Invalid credentials" },
       { status: 401 }
     );
   }
 
-  // Create a signed JWT (or any token)
-  const token = jwt.sign({ sub: USER }, SECRET, {
-    expiresIn: "4h",
-  });
+  try {
+    const token = await new SignJWT({ username })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("1h")
+      .sign(JWT_SECRET);
 
-  const res = NextResponse.json({ success: true });
-  // Set an HTTP-only cookie
-  res.cookies.set({
-    name: "admin-token",
-    value: token,
-    httpOnly: true,
-    path: "/",
-    maxAge: 4 * 60 * 60, // 4 hours
-    sameSite: "lax",
-  });
+    // Create response and set cookie
+    const response = NextResponse.json({ success: true });
+    
+    response.cookies.set({
+      name: "auth-token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 3600, // 1 hour
+      path: "/",
+    });
 
-  return res;
+    return response;
+  } catch (error) {
+    console.error("JWT error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
