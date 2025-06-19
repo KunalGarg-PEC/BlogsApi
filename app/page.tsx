@@ -26,6 +26,11 @@ export default function Home() {
             All Applications
           </button>
         </Link>
+        <Link href="/jobs" passHref>
+          <button className="px-6 py-3 bg-black text-white rounded-3xl hover:opacity-75">
+            All Jobs
+          </button>
+        </Link>
       </div>
     </div>
   );
