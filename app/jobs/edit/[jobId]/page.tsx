@@ -1,16 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { useState, useEffect, FormEvent } from "react";
+import { useParams, useRouter } from 'next/navigation';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "react-hot-toast";
-import { useRouter } from 'next/navigation';
 
 type JobType = "Full Time" | "Part Time" | "Internship" | "Contract" | "Remote";
 
-export default function EditJobForm({ params }: { params: { jobId: string } }) {
+export default function EditJobForm() {
   const router = useRouter();
+  const params = useParams();
+  const jobId = decodeURIComponent(params.jobId as string);
+  
   const [form, setForm] = useState({
     jobId: "",
     title: "",
@@ -23,13 +27,15 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Decode the jobId from URL
-  const decodedJobId = decodeURIComponent(params.jobId);
-
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`/api/jobs/${encodeURIComponent(decodedJobId)}`);
+        const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+        
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
+        
         const data = await res.json();
         
         if (data.success) {
@@ -39,23 +45,25 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             title: job.title,
             location: job.location,
             type: job.type,
-            datePosted: job.datePosted.split('T')[0],
+            datePosted: new Date(job.datePosted).toISOString().split('T')[0],
             description: job.description,
             skills: job.skills.join(', '),
           });
         } else {
-          toast.error('Failed to load job data');
+          toast.error(data.error || 'Failed to load job data');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Fetch job error:', error);
-        toast.error('Failed to load job data');
+        toast.error(`Error loading job: ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchJob();
-  }, [decodedJobId]);
+    if (jobId) {
+      fetchJob();
+    }
+  }, [jobId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -84,7 +92,7 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
     };
 
     try {
-      const res = await fetch(`/api/jobs/${encodeURIComponent(decodedJobId)}`, {
+      const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -120,7 +128,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Job ID (read-only) */}
           <div>
             <Label htmlFor="jobId">Job ID</Label>
             <Input
@@ -134,7 +141,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             />
           </div>
 
-          {/* Title */}
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -148,7 +154,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             />
           </div>
 
-          {/* Location */}
           <div>
             <Label htmlFor="location">Location</Label>
             <Input
@@ -162,7 +167,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             />
           </div>
 
-          {/* Type */}
           <div>
             <Label htmlFor="type">Type</Label>
             <select
@@ -180,7 +184,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             </select>
           </div>
 
-          {/* Date Posted */}
           <div>
             <Label htmlFor="datePosted">Date Posted</Label>
             <Input
@@ -193,7 +196,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             />
           </div>
 
-          {/* Description */}
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -208,7 +210,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             />
           </div>
 
-          {/* Skills */}
           <div>
             <Label htmlFor="skills">Key Skills (comma-separated)</Label>
             <Input
@@ -224,7 +225,6 @@ export default function EditJobForm({ params }: { params: { jobId: string } }) {
             </p>
           </div>
 
-          {/* Submit Button */}
           <div>
             <Button
               type="submit"
