@@ -18,6 +18,14 @@ export async function OPTIONS() {
   });
 }
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -73,18 +81,22 @@ export async function POST(request: Request) {
 
     if (resume instanceof Blob) {
       const buffer = Buffer.from(await resume.arrayBuffer());
-      applicationData.resumeUrl = await uploadToCloudinary(
+      const result = await uploadToCloudinary(
         buffer,
-        `resume_${applicationData.lastName || "candidate"}`
+        `resume_${applicationData.lastName || "candidate"}_${Date.now()}`
       );
+      applicationData.resumePublicId = result.public_id;
+      applicationData.resumeSecureUrl = result.secure_url;
     }
 
     if (coverLetter instanceof Blob) {
       const buffer = Buffer.from(await coverLetter.arrayBuffer());
-      applicationData.coverLetterUrl = await uploadToCloudinary(
+      const result = await uploadToCloudinary(
         buffer,
-        `cover_letter_${applicationData.lastName || "candidate"}`
+        `cover_${applicationData.lastName || "candidate"}_${Date.now()}`
       );
+      applicationData.coverLetterPublicId = result.public_id;
+      applicationData.coverLetterSecureUrl = result.secure_url;
     }
 
     // Save application to database
@@ -147,30 +159,22 @@ async function sendApplicationNotification(
   }
 }
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
-
-// Simplified upload function returns only secure_url string
+// Upload function returns full Cloudinary response
 async function uploadToCloudinary(
   buffer: Buffer,
   publicId: string
-): Promise<string> {
+): Promise<any> {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        resource_type: "auto",
+        resource_type: "raw",
         public_id: publicId,
         folder: "job_applications",
       },
       (error, result) => {
         if (error) reject(error);
-        else if (result?.secure_url) resolve(result.secure_url);
-        else reject(new Error("Upload failed: No secure URL returned"));
+        else if (result) resolve(result);
+        else reject(new Error("Upload failed: No result returned"));
       }
     );
     stream.end(buffer);

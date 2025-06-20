@@ -1,19 +1,33 @@
-// app/admin/applications/page.tsx
-
 // Ensure this page always re-runs on every request
 export const dynamic = 'force-dynamic';
 
 import { connectToDatabase } from '@/lib/mongodb';
 import { Application } from '../../types/application';
 import Link from 'next/link';
+import { ObjectId } from 'mongodb';
+
+// Helper type for MongoDB document with ObjectId
+interface MongoApplication extends Omit<Application, '_id'> {
+  _id: ObjectId;
+  createdAt: Date;
+}
 
 export default async function ApplicationsPage() {
   const { db } = await connectToDatabase();
-  const applications = (await db
+  
+  // Fetch applications with proper typing
+  const mongoApplications = await db
     .collection('applications')
     .find({})
     .sort({ createdAt: -1 })
-    .toArray()) as Application[];
+    .toArray() as MongoApplication[];
+
+  // Convert MongoDB documents to Application type
+  const applications: Application[] = mongoApplications.map(app => ({
+    ...app,
+    _id: app._id.toString(),
+    createdAt: app.createdAt
+  }));
 
   return (
     <div className="max-w-6xl mx-auto p-6 mt-20">

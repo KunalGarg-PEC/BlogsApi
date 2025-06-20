@@ -35,6 +35,8 @@ export interface Education {
     isAuthorizedToWork?: string;
     requiresSponsorship?: string;
     fullName?: string;
+    resumePublicId?: string;  
+    coverLetterPublicId?: string; 
     resumeUrl?: string;
     coverLetterUrl?: string;
     links?: string[];

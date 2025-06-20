@@ -1,11 +1,10 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, Db } from 'mongodb';
 
 const uri = process.env.MONGODB_URI!;
 const dbName = process.env.MONGODB_DB!;
 
 let cachedClient: MongoClient;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cachedDb: any;
+let cachedDb: Db;
 
 export async function connectToDatabase() {
   if (cachedClient && cachedDb) {
