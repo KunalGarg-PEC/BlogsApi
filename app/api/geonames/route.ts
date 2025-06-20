@@ -1,7 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  
+  // Get all query parameters except 'path'
+  const params = new URLSearchParams();
+  searchParams.forEach((value, key) => {
+    if (key !== 'path') {
+      params.append(key, value);
+    }
+  });
+  
   const path = searchParams.get('path');
   
   if (!path) {
@@ -12,7 +21,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const geonamesUrl = `https://secure.geonames.org/${path}&username=kunal_garg01`;
+    // Construct the GeoNames URL with all query parameters
+    const geonamesUrl = `http://api.geonames.org/${path}?${params.toString()}&username=kunal_garg01`;
+    
     const response = await fetch(geonamesUrl);
     
     if (!response.ok) {
