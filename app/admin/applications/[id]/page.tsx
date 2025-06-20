@@ -39,11 +39,11 @@ export default async function ApplicationPage({ params }: Props) {
     
     // Construct download URLs with forced download behavior
     const resumeDownloadUrl = application.resumePublicId 
-      ? `https://res.cloudinary.com/${cloudName}/raw/upload/fl_attachment/${application.resumePublicId}`
+      ? `https://res.cloudinary.com/${cloudName}/raw/upload/${application.resumePublicId}`
       : null;
     
     const coverLetterDownloadUrl = application.coverLetterPublicId 
-      ? `https://res.cloudinary.com/${cloudName}/raw/upload/fl_attachment/${application.coverLetterPublicId}`
+      ? `https://res.cloudinary.com/${cloudName}/raw/upload/${application.coverLetterPublicId}`
       : null;
 
     return (
